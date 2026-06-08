@@ -1,4 +1,4 @@
-const CACHE = 'melembre-v1';
+const CACHE = 'melembre-v2';
 const BASE = self.registration.scope;
 const ASSETS = [BASE, BASE + 'index.html', BASE + 'manifest.json'];
 

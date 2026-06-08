@@ -2,7 +2,7 @@
   "name": "MeLembre",
   "short_name": "MeLembre",
   "description": "Lembretes para datas especiais",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0d0d0f",
