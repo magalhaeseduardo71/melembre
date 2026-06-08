@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#6c63ff" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.json" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>MeLembre</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg-primary:#0d0d0f;
+  --bg-secondary:#18181c;
+  --bg-tertiary:#222228;
+  --accent:#6c63ff;
+  --accent-light:#8b85ff;
+  --accent-dim:rgba(108,99,255,0.15);
+  --text-primary:#f0f0f5;
+  --text-secondary:#9090a8;
+  --text-muted:#55556a;
+  --success:#4ade80;
+  --warning:#fb923c;
+  --danger:#f87171;
+  --border:rgba(255,255,255,0.07);
+  --radius-card:16px;
+  --radius-btn:12px;
+  --radius-input:8px;
+  --shadow:0 0 0 1px var(--border),0 4px 24px rgba(0,0,0,0.3);
+}
+
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  font-family:'Inter',sans-serif;
+  font-size:15px;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── Layout ── */
+#app{
+  flex:1;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  max-width:430px;
+  margin:0 auto;
+  width:100%;
+  position:relative;
+}
+
+.screen{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:16px 16px 90px;
+  display:none;
+  scroll-behavior:smooth;
+}
+.screen.active{display:block}
+
+/* ── Nav ── */
+.nav{
+  position:sticky;
+  bottom:0;
+  background:rgba(13,13,15,0.95);
+  backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);
+  display:flex;
+  height:64px;
+  z-index:100;
+  flex-shrink:0;
+}
+.nav-btn{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  background:none;
+  border:none;
+  color:var(--text-muted);
+  cursor:pointer;
+  font-size:10px;
+  font-family:'Inter',sans-serif;
+  transition:color .2s;
+}
+.nav-btn .ico{font-size:22px;line-height:1}
+.nav-btn.active{color:var(--accent)}
+
+/* ── Header ── */
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 0 16px;
+}
+.header h1{
+  font-family:'DM Sans',sans-serif;
+  font-size:22px;
+  font-weight:700;
+  color:var(--text-primary);
+}
+.header-badge{
+  font-size:11px;
+  background:var(--accent-dim);
+  color:var(--accent-light);
+  padding:3px 10px;
+  border-radius:20px;
+  font-weight:500;
+}
+
+/* ── Cards ── */
+.card{
+  background:var(--bg-secondary);
+  border-radius:var(--radius-card);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  transition:transform .15s,box-shadow .15s;
+}
+.card:active{transform:scale(0.98)}
+
+/* ── Main card (próximo) ── */
+.main-card{
+  padding:20px;
+  margin-bottom:16px;
+  position:relative;
+  border:1px solid var(--border);
+}
+.main-card .emoji-wrap{
+  font-size:52px;
+  line-height:1;
+  margin-bottom:12px;
+  display:block;
+}
+.main-card .titulo{
+  font-family:'DM Sans',sans-serif;
+  font-size:20px;
+  font-weight:700;
+  margin-bottom:4px;
+}
+.main-card .data-fmt{
+  font-size:13px;
+  color:var(--text-secondary);
+  margin-bottom:14px;
+}
+.countdown-big{
+  font-family:'JetBrains Mono',monospace;
+  font-size:28px;
+  font-weight:500;
+  color:var(--accent-light);
+  letter-spacing:-0.5px;
+  margin-bottom:14px;
+  line-height:1.2;
+}
+.countdown-big.urgente{color:var(--warning)}
+.countdown-big.agora{color:var(--success);animation:pulse 1s ease-in-out infinite}
+.countdown-big.atrasado{color:var(--danger)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+.progress-bar{
+  height:4px;
+  background:var(--bg-tertiary);
+  border-radius:2px;
+  margin-bottom:16px;
+  overflow:hidden;
+}
+.progress-fill{
+  height:100%;
+  border-radius:2px;
+  background:var(--accent);
+  transition:width .5s ease;
+}
+
+.card-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.btn{
+  border:none;
+  border-radius:var(--radius-btn);
+  padding:8px 14px;
+  font-size:13px;
+  font-family:'Inter',sans-serif;
+  font-weight:500;
+  cursor:pointer;
+  transition:background .15s,transform .1s;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+.btn:active{transform:scale(0.95)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-light)}
+.btn-ghost{background:var(--bg-tertiary);color:var(--text-secondary)}
+.btn-ghost:hover{background:rgba(255,255,255,0.1);color:var(--text-primary)}
+.btn-danger{background:rgba(248,113,113,0.15);color:var(--danger)}
+.btn-danger:hover{background:rgba(248,113,113,0.25)}
+
+/* ── Mini cards (2 e 3) ── */
+.mini-cards{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:16px;
+}
+.mini-card{
+  padding:16px;
+  cursor:pointer;
+  border:1px solid var(--border);
+}
+.mini-card .emoji-sm{font-size:28px;margin-bottom:8px;display:block}
+.mini-card .titulo-sm{
+  font-family:'DM Sans',sans-serif;
+  font-weight:600;
+  font-size:14px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  margin-bottom:4px;
+}
+.mini-card .dias-sm{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  color:var(--accent-light);
+}
+.mini-card .data-sm{font-size:11px;color:var(--text-muted);margin-top:2px}
+.mini-card-add{
+  border:1px dashed var(--border);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  color:var(--text-muted);
+  font-size:13px;
+  cursor:pointer;
+  min-height:110px;
+  transition:border-color .2s,color .2s;
+}
+.mini-card-add:hover{border-color:var(--accent);color:var(--accent)}
+.mini-card-add .plus{font-size:24px}
+
+/* ── Lista todos ── */
+.section-label{
+  font-size:11px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--text-muted);
+  margin:20px 0 10px;
+}
+.lembrete-item{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:14px;
+  margin-bottom:8px;
+  border:1px solid var(--border);
+  cursor:pointer;
+}
+.lembrete-item .emoji-item{
+  font-size:30px;
+  flex-shrink:0;
+  position:relative;
+  line-height:1;
+  padding-top:2px;
+}
+.emoji-item .check-overlay{
+  position:absolute;
+  bottom:-2px;
+  right:-4px;
+  font-size:13px;
+}
+.lembrete-item.concluido{opacity:.6}
+.lembrete-info{flex:1;min-width:0}
+.lembrete-titulo{
+  font-family:'DM Sans',sans-serif;
+  font-weight:600;
+  font-size:15px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.lembrete-data{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.lembrete-countdown{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  margin-top:4px;
+}
+.lembrete-countdown.ok{color:var(--success)}
+.lembrete-countdown.urgente{color:var(--warning)}
+.lembrete-countdown.atrasado{color:var(--danger)}
+.urgency-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  flex-shrink:0;
+  margin-top:6px;
+}
+.urgency-dot.ok{background:var(--success)}
+.urgency-dot.urgente{background:var(--warning)}
+.urgency-dot.atrasado{background:var(--danger)}
+.urgency-dot.concluido{background:var(--text-muted)}
+
+/* ── Estado vazio ── */
+.empty-state{
+  text-align:center;
+  padding:60px 20px;
+  color:var(--text-muted);
+}
+.empty-icon{font-size:56px;margin-bottom:16px}
+.empty-title{
+  font-family:'DM Sans',sans-serif;
+  font-size:18px;
+  font-weight:600;
+  color:var(--text-secondary);
+  margin-bottom:8px;
+}
+.empty-sub{font-size:14px;line-height:1.6;margin-bottom:20px}
+
+/* ── FAB ── */
+.fab{
+  position:fixed;
+  bottom:76px;
+  right:max(16px, calc(50% - 215px + 16px));
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background:var(--accent);
+  border:none;
+  color:#fff;
+  font-size:26px;
+  cursor:pointer;
+  box-shadow:0 4px 20px rgba(108,99,255,0.5);
+  z-index:200;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:transform .15s,box-shadow .15s;
+}
+.fab:hover{transform:scale(1.05);box-shadow:0 6px 28px rgba(108,99,255,0.65)}
+.fab:active{transform:scale(0.93)}
+
+/* ── Bottom sheet ── */
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  z-index:300;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .3s;
+}
+.overlay.show{opacity:1;pointer-events:all}
+
+.sheet{
+  position:fixed;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%) translateY(100%);
+  width:100%;
+  max-width:430px;
+  background:var(--bg-secondary);
+  border-radius:20px 20px 0 0;
+  z-index:400;
+  transition:transform .35s cubic-bezier(.32,0,.17,1);
+  max-height:92vh;
+  display:flex;
+  flex-direction:column;
+}
+.sheet.show{transform:translateX(-50%) translateY(0)}
+
+.sheet-handle{
+  width:40px;
+  height:4px;
+  background:var(--bg-tertiary);
+  border-radius:2px;
+  margin:12px auto 0;
+  flex-shrink:0;
+}
+.sheet-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 20px 12px;
+  flex-shrink:0;
+}
+.sheet-title{
+  font-family:'DM Sans',sans-serif;
+  font-weight:700;
+  font-size:18px;
+}
+.sheet-close{
+  background:var(--bg-tertiary);
+  border:none;
+  color:var(--text-secondary);
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  font-size:16px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.sheet-body{
+  overflow-y:auto;
+  padding:0 20px;
+  flex:1;
+}
+
+.sheet-footer{
+  padding:16px 20px;
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+
+/* ── Formulário ── */
+.form-row{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:14px;
+}
+.form-group{
+  margin-bottom:14px;
+}
+.form-label{
+  display:block;
+  font-size:12px;
+  font-weight:500;
+  color:var(--text-secondary);
+  margin-bottom:6px;
+}
+.form-input{
+  width:100%;
+  background:var(--bg-tertiary);
+  border:1px solid var(--border);
+  border-radius:var(--radius-input);
+  padding:11px 13px;
+  font-size:15px;
+  font-family:'Inter',sans-serif;
+  color:var(--text-primary);
+  outline:none;
+  transition:border-color .2s;
+}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--text-muted)}
+
+.emoji-btn{
+  width:52px;
+  height:52px;
+  background:var(--bg-tertiary);
+  border:1px solid var(--border);
+  border-radius:var(--radius-input);
+  font-size:26px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  transition:border-color .2s;
+}
+.emoji-btn:hover{border-color:var(--accent)}
+
+.chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.chip{
+  padding:7px 14px;
+  border-radius:20px;
+  font-size:13px;
+  background:var(--bg-tertiary);
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s;
+  white-space:nowrap;
+}
+.chip.active{
+  background:var(--accent-dim);
+  border-color:var(--accent);
+  color:var(--accent-light);
+}
+
+.toggle-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 0;
+  border-top:1px solid var(--border);
+}
+.toggle-label{font-size:14px}
+.toggle{
+  width:44px;
+  height:26px;
+  background:var(--bg-tertiary);
+  border-radius:13px;
+  position:relative;
+  cursor:pointer;
+  transition:background .25s;
+  border:none;
+  flex-shrink:0;
+}
+.toggle.on{background:var(--accent)}
+.toggle::after{
+  content:'';
+  position:absolute;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#fff;
+  top:3px;
+  left:3px;
+  transition:transform .25s;
+}
+.toggle.on::after{transform:translateX(18px)}
+
+/* ── Emoji picker ── */
+.emoji-picker{
+  position:fixed;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%) translateY(100%);
+  width:100%;
+  max-width:430px;
+  background:var(--bg-secondary);
+  border-radius:20px 20px 0 0;
+  z-index:500;
+  transition:transform .35s cubic-bezier(.32,0,.17,1);
+  max-height:70vh;
+  display:flex;
+  flex-direction:column;
+}
+.emoji-picker.show{transform:translateX(-50%) translateY(0)}
+
+.emoji-cats{
+  display:flex;
+  gap:4px;
+  overflow-x:auto;
+  padding:12px 16px;
+  scrollbar-width:none;
+  flex-shrink:0;
+  border-bottom:1px solid var(--border);
+}
+.emoji-cats::-webkit-scrollbar{display:none}
+.cat-btn{
+  background:none;
+  border:none;
+  font-size:22px;
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .15s;
+  flex-shrink:0;
+}
+.cat-btn.active{background:var(--accent-dim)}
+.emoji-grid{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:4px;
+  padding:12px 16px 20px;
+  overflow-y:auto;
+}
+.emoji-cell{
+  font-size:28px;
+  text-align:center;
+  padding:6px 0;
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .12s;
+  border:none;
+  background:none;
+}
+.emoji-cell:hover{background:var(--bg-tertiary)}
+.emoji-cell:active{background:var(--accent-dim)}
+
+/* ── Snooze sheet ── */
+.snooze-options{display:flex;flex-direction:column;gap:8px;padding:8px 0 16px}
+.snooze-btn{
+  background:var(--bg-tertiary);
+  border:1px solid var(--border);
+  border-radius:var(--radius-btn);
+  padding:14px 16px;
+  font-size:15px;
+  font-family:'Inter',sans-serif;
+  color:var(--text-primary);
+  cursor:pointer;
+  text-align:left;
+  transition:background .15s;
+}
+.snooze-btn:hover{background:rgba(255,255,255,0.07)}
+
+/* ── Toast ── */
+#toast{
+  position:fixed;
+  bottom:80px;
+  left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--bg-tertiary);
+  color:var(--text-primary);
+  padding:10px 20px;
+  border-radius:20px;
+  font-size:14px;
+  z-index:900;
+  opacity:0;
+  transition:opacity .3s,transform .3s;
+  pointer-events:none;
+  white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  max-width:calc(100vw - 40px);
+  text-align:center;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Notif banner ── */
+#notif-banner{
+  background:var(--accent-dim);
+  border:1px solid var(--accent);
+  border-radius:var(--radius-card);
+  padding:14px 16px;
+  margin-bottom:16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+#notif-banner .nb-icon{font-size:24px}
+#notif-banner .nb-text{flex:1;font-size:13px;line-height:1.5;color:var(--text-secondary)}
+#notif-banner .nb-text strong{color:var(--text-primary);display:block;margin-bottom:2px}
+#notif-banner .btn-ativar{
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  border-radius:var(--radius-btn);
+  padding:8px 14px;
+  font-size:13px;
+  font-family:'Inter',sans-serif;
+  font-weight:500;
+  cursor:pointer;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+/* ── Filtros ── */
+.filters{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding-bottom:4px;
+  margin-bottom:16px;
+  scrollbar-width:none;
+}
+.filters::-webkit-scrollbar{display:none}
+.filter-btn{
+  background:var(--bg-tertiary);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:7px 14px;
+  font-size:13px;
+  font-family:'Inter',sans-serif;
+  color:var(--text-secondary);
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all .15s;
+}
+.filter-btn.active{
+  background:var(--accent-dim);
+  border-color:var(--accent);
+  color:var(--accent-light);
+}
+
+/* ── Config ── */
+.config-section{margin-bottom:24px}
+.config-title{
+  font-family:'DM Sans',sans-serif;
+  font-weight:700;
+  font-size:16px;
+  margin-bottom:12px;
+}
+.config-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 16px;
+  background:var(--bg-secondary);
+  border-radius:var(--radius-card);
+  border:1px solid var(--border);
+  margin-bottom:8px;
+}
+.config-item-left{display:flex;align-items:center;gap:12px}
+.config-item-icon{font-size:20px}
+.config-item-label{font-size:14px}
+
+/* ── Online/offline ── */
+#status-bar{
+  text-align:center;
+  font-size:11px;
+  padding:6px;
+  background:var(--danger);
+  color:#fff;
+  display:none;
+}
+#status-bar.show{display:block}
+
+/* ── Confirm dialog ── */
+#confirm-dialog{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  z-index:800;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .25s;
+}
+#confirm-dialog.show{opacity:1;pointer-events:all}
+.confirm-box{
+  background:var(--bg-secondary);
+  border-radius:var(--radius-card);
+  padding:24px;
+  width:100%;
+  max-width:340px;
+  box-shadow:var(--shadow);
+}
+.confirm-title{
+  font-family:'DM Sans',sans-serif;
+  font-weight:700;
+  font-size:17px;
+  margin-bottom:8px;
+}
+.confirm-msg{font-size:14px;color:var(--text-secondary);margin-bottom:20px;line-height:1.5}
+.confirm-actions{display:flex;gap:10px}
+.confirm-actions .btn{flex:1;justify-content:center}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── Animações ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .25s ease forwards}
+
+/* ── Pull to refresh ── */
+.ptr-indicator{
+  text-align:center;
+  color:var(--text-muted);
+  font-size:12px;
+  padding:10px;
+  transition:all .2s;
+}
+</style>
+</head>
+<body>
+
+<div id="status-bar">Sem conexão — dados salvos localmente</div>
+
+<div id="app">
+  <!-- Telas -->
+  <div class="screen active" id="screen-home"></div>
+  <div class="screen" id="screen-todos"></div>
+  <div class="screen" id="screen-config"></div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <button class="nav-btn active" data-screen="home" onclick="goScreen('home',this)">
+      <span class="ico">🏠</span>Início
+    </button>
+    <button class="nav-btn" data-screen="todos" onclick="goScreen('todos',this)">
+      <span class="ico">📋</span>Todos
+    </button>
+    <button class="nav-btn" data-screen="config" onclick="goScreen('config',this)">
+      <span class="ico">⚙️</span>Config
+    </button>
+  </nav>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openForm()" aria-label="Novo lembrete">+</button>
+
+<!-- Overlay global -->
+<div class="overlay" id="overlay" onclick="closeAllSheets()"></div>
+
+<!-- ── Formulário sheet ── -->
+<div class="sheet" id="form-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="form-title">Novo Lembrete</span>
+    <button class="sheet-close" onclick="closeForm()">✕</button>
+  </div>
+  <div class="sheet-body" id="form-body">
+    <div class="form-row">
+      <button class="emoji-btn" id="emoji-trigger" onclick="openEmojiPicker()" aria-label="Escolher emoji">🔔</button>
+      <div style="flex:1">
+        <label class="form-label">Título *</label>
+        <input class="form-input" id="f-titulo" placeholder="Ex: Jogo do Brasil" maxlength="80" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input class="form-input" id="f-desc" placeholder="Opcional" maxlength="200" />
+    </div>
+
+    <div class="form-row" style="gap:10px">
+      <div style="flex:1">
+        <label class="form-label">Data *</label>
+        <input class="form-input" id="f-data" type="date" />
+      </div>
+      <div style="flex:1">
+        <label class="form-label">Hora</label>
+        <input class="form-input" id="f-hora" type="time" value="09:00" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Categoria</label>
+      <div class="chips" id="cat-chips">
+        <div class="chip active" data-cat="geral">🎯 Geral</div>
+        <div class="chip" data-cat="jogo">⚽ Jogo</div>
+        <div class="chip" data-cat="aniversario">🎂 Aniversário</div>
+        <div class="chip" data-cat="pagamento">💳 Pagamento</div>
+        <div class="chip" data-cat="viagem">✈️ Viagem</div>
+        <div class="chip" data-cat="outro">📌 Outro</div>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">🔁 Repetir todo ano</span>
+      <button class="toggle" id="toggle-anual" onclick="this.classList.toggle('on')" aria-label="Repetir todo ano"></button>
+    </div>
+    <div style="height:12px"></div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px" onclick="salvarLembrete()">Salvar</button>
+  </div>
+</div>
+
+<!-- ── Emoji picker ── -->
+<div class="emoji-picker" id="emoji-picker">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Escolher Emoji</span>
+    <button class="sheet-close" onclick="closeEmojiPicker()">✕</button>
+  </div>
+  <div class="emoji-cats" id="emoji-cats"></div>
+  <div class="emoji-grid" id="emoji-grid"></div>
+</div>
+
+<!-- ── Snooze sheet ── -->
+<div class="sheet" id="snooze-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Adiar lembrete</span>
+    <button class="sheet-close" onclick="closeSnooze()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="snooze-options">
+      <button class="snooze-btn" onclick="snooze(1)">⏩ +1 dia</button>
+      <button class="snooze-btn" onclick="snooze(3)">⏩ +3 dias</button>
+      <button class="snooze-btn" onclick="snooze(7)">⏩ +1 semana</button>
+      <button class="snooze-btn" onclick="snooze(30)">⏩ +1 mês</button>
+      <button class="snooze-btn" onclick="snoozeCustom()">📅 Data personalizada</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Actions sheet ── -->
+<div class="sheet" id="actions-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="actions-title">Opções</span>
+    <button class="sheet-close" onclick="closeActions()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="snooze-options" id="actions-body"></div>
+  </div>
+</div>
+
+<!-- ── Confirm dialog ── -->
+<div id="confirm-dialog">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">Confirmar</div>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ─── Config ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://nbcqogigjatzkmeghgok.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iY3FvZ2lnamF0emttZWdoZ29rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NjQxNDIsImV4cCI6MjA5NjQ0MDE0Mn0.WLxrXy1o1zKhu7Qq5lf3dp8oqAh6gPy4m30OE9DUUnI';
+
+// ─── Supabase ─────────────────────────────────────────────────────────────────
+const { createClient } = supabase;
+const deviceId = getDeviceId();
+
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: {
+    headers: { 'x-device-id': deviceId }
+  }
+});
+
+function getDeviceId() {
+  let id = localStorage.getItem('melembre_device_id');
+  if (!id) { id = crypto.randomUUID(); localStorage.setItem('melembre_device_id', id); }
+  return id;
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let lembretes = [];
+let editingId = null;
+let snoozeTargetId = null;
+let actionsTargetId = null;
+let selectedEmoji = '🔔';
+let selectedCat = 'geral';
+let countdownTimers = [];
+let emojiCatIndex = 0;
+
+// ─── Emoji data ───────────────────────────────────────────────────────────────
+const EMOJI_CATS = [
+  { label: '😊', name: 'Rostos',     emojis: ['😊','😄','😂','🥹','😍','🤩','😎','🥳','😇','🤗','😉','😌','🤭','😆','😋','🤑','😏','🙃','😜','😝','🤪','😬','😈','🥸','🤡','👻','💀','👾','🤖','😺'] },
+  { label: '🎉', name: 'Celebração', emojis: ['🎂','🎉','🎊','🥳','🎁','🎈','🎀','🥂','🍰','🎆','🎇','✨','🎠','🎡','🎢','🎪','🥇','🏆','🪅','🎭','🎬','🎤','🎼','🎵','🎶','🎸','🎻','🥁','🪘','🎹'] },
+  { label: '⚽', name: 'Esportes',   emojis: ['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🎱','🏓','🥊','🥋','🏋️','🤼','🏊','🚴','🧗','⛷️','🏄','🤸','⛹️','🤾','🏌️','🏇','🤺','🥅','⛳','🏹','🎣','🎿','🛷'] },
+  { label: '🍕', name: 'Comida',     emojis: ['🍕','🍔','🌮','🍣','🍜','🍩','🎂','🍦','☕','🧃','🍺','🥗','🍱','🥩','🍗','🌯','🥐','🍞','🧇','🥞','🍳','🥚','🧀','🥓','🍖','🌭','🍟','🍿','🧂','🥨'] },
+  { label: '✈️', name: 'Viagem',     emojis: ['✈️','🚂','🚢','🚗','🏖️','🏔️','🗺️','🧳','🏨','🗼','🗽','🏝️','⛺','🚀','🛸','🌍','🧭','🎫','🗿','🏛️','🎡','🌋','🏕️','🏜️','🗺️','🚁','⛵','🛥️','🚤','🛳️'] },
+  { label: '💳', name: 'Finanças',   emojis: ['💳','💰','💵','💴','💸','🏦','📊','📈','💹','🪙','💲','🧾','🏧','💎','🤑','💼','📋','🔐','🏷️','📌','🗃️','📂','💡','🔑','🔒','📝','✍️','🖊️','📅','📆'] },
+  { label: '🎵', name: 'Música',     emojis: ['🎵','🎶','🎸','🥁','🎹','🎺','🎻','🪕','🎷','🎙️','🎤','🎧','📻','🔊','🎼','🎭','🩰','🕺','💃','🎤','🎬','🎞️','📽️','🎦','🎠','🎡','🎢','🎪','🎨','🖼️'] },
+  { label: '❤️', name: 'Amor',       emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💕','💞','💓','💗','💖','💘','💝','💟','❣️','💔','♥️','🌹','💐','🌷','🌸','💍','👫','👬','👭','💏','👨‍❤️‍👨'] },
+  { label: '🎮', name: 'Games',      emojis: ['🎮','🕹️','👾','🎯','🧩','♟️','🎲','🃏','🀄','🎰','🎳','🎭','🏆','🥇','🎖️','🏅','🌟','⭐','✨','🔥','💥','⚡','🌈','🎆','🎇','🪄','🔮','👑','💎','🗡️'] },
+  { label: '📅', name: 'Data',       emojis: ['📅','📆','🗓️','⏰','⏱️','⏲️','🕐','🕑','🕒','🕓','🕔','🕕','📌','📍','🔔','🔕','📣','📢','⏳','⌛','🗃️','📋','📝','✅','☑️','🔖','📎','🖇️','✂️','📐'] },
+  { label: '🏥', name: 'Saúde',      emojis: ['🏥','💊','💉','🩺','🩹','🩻','🧬','🔬','🧪','🩸','👨‍⚕️','👩‍⚕️','🦷','🦴','💪','🧠','❤️','🫀','🫁','👁️','🌡️','🧘','🏃','🚶','🛁','🛏️','🥗','💤','😴','🧖'] },
+  { label: '🎓', name: 'Estudo',     emojis: ['🎓','📚','📖','✏️','📝','🖊️','📐','📏','🔬','🔭','💡','🧪','🧫','🧬','🖥️','💻','📱','⌨️','🖱️','🖨️','📊','📈','📉','🗂️','📁','📂','📌','🗒️','🗃️','🏫'] },
+];
+
+const CAT_EMOJI_MAP = {
+  geral: '🎯', jogo: '⚽', aniversario: '🎂', pagamento: '💳', viagem: '✈️', outro: '📌'
+};
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  registerSW();
+  setupOfflineDetection();
+  setupCatChips();
+  setupEmojiPicker();
+  await loadLembretes();
+  renderHome();
+  renderTodos();
+  renderConfig();
+  startCountdowns();
+  setupSWComms();
+  updateBadge();
+}
+
+// ─── Service Worker ───────────────────────────────────────────────────────────
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+}
+
+function setupSWComms() {
+  if (!navigator.serviceWorker) return;
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data && e.data.type === 'GET_LEMBRETES') {
+      const ctrl = navigator.serviceWorker.controller;
+      if (ctrl) ctrl.postMessage({ type: 'LEMBRETES_DATA', lembretes });
+    }
+    if (e.data && e.data.type === 'DISPENSAR') {
+      dispensarLembrete(e.data.id);
+    }
+  });
+}
+
+// ─── Offline ──────────────────────────────────────────────────────────────────
+function setupOfflineDetection() {
+  const bar = document.getElementById('status-bar');
+  const update = () => bar.classList.toggle('show', !navigator.onLine);
+  window.addEventListener('online', () => { update(); syncOfflineLembretes(); });
+  window.addEventListener('offline', update);
+  update();
+}
+
+// ─── Data ─────────────────────────────────────────────────────────────────────
+async function loadLembretes() {
+  if (!navigator.onLine) {
+    lembretes = getLocalLembretes();
+    return;
+  }
+  try {
+    const { data, error } = await sb.from('lembretes').select('*').eq('user_id', deviceId).order('data_alvo', { ascending: true });
+    if (error) throw error;
+    lembretes = data || [];
+    saveLocalLembretes(lembretes);
+  } catch {
+    lembretes = getLocalLembretes();
+  }
+}
+
+function getLocalLembretes() {
+  try { return JSON.parse(localStorage.getItem('melembre_lembretes') || '[]'); } catch { return []; }
+}
+
+function saveLocalLembretes(data) {
+  localStorage.setItem('melembre_lembretes', JSON.stringify(data));
+}
+
+async function syncOfflineLembretes() {
+  const pending = JSON.parse(localStorage.getItem('melembre_pending') || '[]');
+  for (const l of pending) {
+    try {
+      await sb.from('lembretes').upsert(l);
+    } catch {}
+  }
+  localStorage.removeItem('melembre_pending');
+  await loadLembretes();
+  renderHome();
+  renderTodos();
+  updateBadge();
+}
+
+async function upsertLembrete(data) {
+  if (!navigator.onLine) {
+    const pending = JSON.parse(localStorage.getItem('melembre_pending') || '[]');
+    pending.push(data);
+    localStorage.setItem('melembre_pending', JSON.stringify(pending));
+    const idx = lembretes.findIndex(l => l.id === data.id);
+    if (idx >= 0) lembretes[idx] = data; else lembretes.push(data);
+    saveLocalLembretes(lembretes);
+    return;
+  }
+  const { error } = await sb.from('lembretes').upsert(data);
+  if (error) throw error;
+  await loadLembretes();
+}
+
+async function deleteLembrete(id) {
+  if (!navigator.onLine) {
+    lembretes = lembretes.filter(l => l.id !== id);
+    saveLocalLembretes(lembretes);
+    return;
+  }
+  await sb.from('lembretes').delete().eq('id', id).eq('user_id', deviceId);
+  await loadLembretes();
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+function goScreen(name, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── Render Home ──────────────────────────────────────────────────────────────
+function renderHome() {
+  const el = document.getElementById('screen-home');
+  const ativos = lembretes.filter(l => !l.concluido && !l.dispensado).sort((a, b) => new Date(a.data_alvo) - new Date(b.data_alvo));
+
+  let html = `<div class="header"><h1>🔔 MeLembre</h1><span class="header-badge">${formatDate(new Date(), 'hoje')}</span></div>`;
+
+  if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+    html += `<div id="notif-banner"><span class="nb-icon">🔔</span><div class="nb-text"><strong>Ative as notificações</strong>Para ser avisado na hora do evento</div><button class="btn-ativar" onclick="ativarNotifs()">Ativar</button></div>`;
+  }
+
+  if (ativos.length === 0) {
+    html += `<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">Nenhum lembrete ainda</div><div class="empty-sub">Crie seu primeiro lembrete e nunca mais esqueça uma data importante</div><button class="btn btn-primary" onclick="openForm()">+ Criar primeiro lembrete</button></div>`;
+  } else {
+    const primeiro = ativos[0];
+    html += renderMainCard(primeiro);
+
+    const mini = ativos.slice(1, 3);
+    html += '<div class="mini-cards">';
+    for (let i = 0; i < 2; i++) {
+      if (mini[i]) {
+        html += renderMiniCard(mini[i]);
+      } else {
+        html += `<div class="card mini-card-add" onclick="openForm()"><span class="plus">+</span>Adicionar</div>`;
+      }
+    }
+    html += '</div>';
+
+    if (ativos.length > 3) {
+      html += `<div class="section-label">Outros (${ativos.length - 3})</div>`;
+      ativos.slice(3).forEach(l => { html += renderItem(l); });
+    }
+  }
+
+  const concluidos = lembretes.filter(l => l.concluido);
+  if (concluidos.length > 0) {
+    html += `<div class="section-label">Concluídos (${concluidos.length})</div>`;
+    concluidos.slice(0, 3).forEach(l => { html += renderItem(l); });
+    if (concluidos.length > 3) html += `<div style="text-align:center;padding:10px 0"><button class="btn btn-ghost" onclick="goScreen('todos',document.querySelector('[data-screen=todos]'))">Ver todos concluídos</button></div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderMainCard(l) {
+  const urgencia = getUrgencia(l);
+  const prog = getProgress(l);
+  const dataFmt = formatDataAlvo(l.data_alvo);
+
+  return `<div class="card main-card fade-in" id="main-card-${l.id}">
+    <span class="emoji-wrap">${l.emoji}</span>
+    <div class="titulo">${esc(l.titulo)}</div>
+    <div class="data-fmt">${dataFmt}</div>
+    <div class="countdown-big ${urgencia}" id="cd-main-${l.id}" data-alvo="${l.data_alvo}">--</div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-${l.id}" style="width:${prog}%;background:${getProgressColor(urgencia)}"></div></div>
+    <div class="card-actions">
+      <button class="btn btn-ghost" onclick="openSnooze('${l.id}')">⏱ Adiar</button>
+      <button class="btn btn-ghost" onclick="concluirLembrete('${l.id}')">✅ Concluir</button>
+      <button class="btn btn-ghost" onclick="openForm('${l.id}')">✏️ Editar</button>
+      <button class="btn btn-ghost" onclick="compartilhar('${l.id}')">📤</button>
+    </div>
+  </div>`;
+}
+
+function renderMiniCard(l) {
+  const urgencia = getUrgencia(l);
+  return `<div class="card mini-card fade-in" onclick="expandMini('${l.id}')">
+    <span class="emoji-sm">${l.emoji}</span>
+    <div class="titulo-sm">${esc(l.titulo)}</div>
+    <div class="dias-sm" id="cd-mini-${l.id}" data-alvo="${l.data_alvo}">--</div>
+    <div class="data-sm">${formatDataAlvo(l.data_alvo, true)}</div>
+  </div>`;
+}
+
+function renderItem(l) {
+  const urgencia = l.concluido ? 'concluido' : getUrgencia(l);
+  const emojiHtml = l.concluido
+    ? `<span class="emoji-item" style="opacity:.6">${l.emoji}<span class="check-overlay">✅</span></span>`
+    : `<span class="emoji-item">${l.emoji}</span>`;
+
+  return `<div class="card lembrete-item ${l.concluido ? 'concluido' : ''} fade-in" onclick="openActions('${l.id}')">
+    ${emojiHtml}
+    <div class="lembrete-info">
+      <div class="lembrete-titulo">${esc(l.titulo)}</div>
+      <div class="lembrete-data">${formatDataAlvo(l.data_alvo)}</div>
+      ${!l.concluido ? `<div class="lembrete-countdown ${urgencia}" id="cd-item-${l.id}" data-alvo="${l.data_alvo}">--</div>` : ''}
+    </div>
+    <div class="urgency-dot ${urgencia}"></div>
+  </div>`;
+}
+
+// ─── Render Todos ─────────────────────────────────────────────────────────────
+let filtroAtual = 'todos';
+
+function renderTodos() {
+  const el = document.getElementById('screen-todos');
+  let html = `<div class="header"><h1>📋 Todos os Lembretes</h1></div>`;
+  html += `<div class="filters">
+    <button class="filter-btn ${filtroAtual==='todos'?'active':''}" onclick="setFiltro('todos')">Todos</button>
+    <button class="filter-btn ${filtroAtual==='ativos'?'active':''}" onclick="setFiltro('ativos')">Ativos</button>
+    <button class="filter-btn ${filtroAtual==='concluidos'?'active':''}" onclick="setFiltro('concluidos')">Concluídos</button>
+    <button class="filter-btn ${filtroAtual==='jogo'?'active':''}" onclick="setFiltro('jogo')">⚽ Jogos</button>
+    <button class="filter-btn ${filtroAtual==='aniversario'?'active':''}" onclick="setFiltro('aniversario')">🎂 Aniversários</button>
+    <button class="filter-btn ${filtroAtual==='pagamento'?'active':''}" onclick="setFiltro('pagamento')">💳 Pagamentos</button>
+    <button class="filter-btn ${filtroAtual==='viagem'?'active':''}" onclick="setFiltro('viagem')">✈️ Viagens</button>
+  </div>`;
+
+  let filtered = [...lembretes].sort((a, b) => new Date(a.data_alvo) - new Date(b.data_alvo));
+  if (filtroAtual === 'ativos') filtered = filtered.filter(l => !l.concluido && !l.dispensado);
+  else if (filtroAtual === 'concluidos') filtered = filtered.filter(l => l.concluido);
+  else if (['jogo','aniversario','pagamento','viagem'].includes(filtroAtual)) filtered = filtered.filter(l => l.categoria === filtroAtual);
+
+  if (filtered.length === 0) {
+    html += `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">Nenhum resultado</div><div class="empty-sub">Tente outro filtro ou crie um novo lembrete</div></div>`;
+  } else {
+    // Group by section
+    const hoje = [], semana = [], emBreve = [], concluidos = [];
+    const now = new Date();
+    filtered.forEach(l => {
+      if (l.concluido) { concluidos.push(l); return; }
+      const diff = new Date(l.data_alvo) - now;
+      if (diff < 86400000 && diff > -86400000) hoje.push(l);
+      else if (diff < 7 * 86400000) semana.push(l);
+      else emBreve.push(l);
+    });
+
+    if (hoje.length) { html += '<div class="section-label">Hoje</div>'; hoje.forEach(l => html += renderItem(l)); }
+    if (semana.length) { html += '<div class="section-label">Esta semana</div>'; semana.forEach(l => html += renderItem(l)); }
+    if (emBreve.length) { html += '<div class="section-label">Em breve</div>'; emBreve.forEach(l => html += renderItem(l)); }
+    if (concluidos.length) { html += '<div class="section-label">Concluídos</div>'; concluidos.forEach(l => html += renderItem(l)); }
+  }
+
+  el.innerHTML = html;
+}
+
+function setFiltro(f) {
+  filtroAtual = f;
+  renderTodos();
+  startCountdowns();
+}
+
+// ─── Render Config ────────────────────────────────────────────────────────────
+function renderConfig() {
+  const el = document.getElementById('screen-config');
+  el.innerHTML = `
+  <div class="header"><h1>⚙️ Configurações</h1></div>
+  <div class="config-section">
+    <div class="config-title">Notificações</div>
+    <div class="config-item">
+      <div class="config-item-left"><span class="config-item-icon">🔔</span><span class="config-item-label">Notificações push</span></div>
+      <button class="btn btn-ghost" onclick="ativarNotifs()">Ativar</button>
+    </div>
+    <div class="config-item">
+      <div class="config-item-left"><span class="config-item-icon">🧪</span><span class="config-item-label">Testar notificação</span></div>
+      <button class="btn btn-ghost" onclick="testarNotif()">Testar</button>
+    </div>
+  </div>
+  <div class="config-section">
+    <div class="config-title">Dados</div>
+    <div class="config-item">
+      <div class="config-item-left"><span class="config-item-icon">🧹</span><span class="config-item-label">Limpar concluídos</span></div>
+      <button class="btn btn-danger" onclick="limparConcluidos()">Limpar</button>
+    </div>
+    <div class="config-item">
+      <div class="config-item-left"><span class="config-item-icon">📤</span><span class="config-item-label">Exportar lembretes</span></div>
+      <button class="btn btn-ghost" onclick="exportarJSON()">Exportar</button>
+    </div>
+  </div>
+  <div class="config-section">
+    <div class="config-title">Sobre</div>
+    <div class="config-item">
+      <div class="config-item-left"><span class="config-item-icon">📱</span><span class="config-item-label">Dispositivo</span></div>
+      <span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${deviceId.slice(0,8)}…</span>
+    </div>
+    <div class="config-item">
+      <div class="config-item-left"><span class="config-item-icon">ℹ️</span><span class="config-item-label">Seus dados ficam neste dispositivo</span></div>
+    </div>
+  </div>`;
+}
+
+// ─── Countdowns ───────────────────────────────────────────────────────────────
+function startCountdowns() {
+  countdownTimers.forEach(clearInterval);
+  countdownTimers = [];
+
+  function tick() {
+    document.querySelectorAll('[id^="cd-main-"],[id^="cd-mini-"],[id^="cd-item-"]').forEach(el => {
+      const alvo = new Date(el.dataset.alvo);
+      const txt = formatCountdown(alvo);
+      const cls = getUrgenciaFromDiff(alvo - Date.now());
+      el.textContent = txt;
+      el.className = el.className.replace(/\b(ok|urgente|atrasado|agora|concluido)\b/g, '') + ' ' + cls;
+    });
+  }
+  tick();
+  const t = setInterval(tick, 1000);
+  countdownTimers.push(t);
+}
+
+function formatCountdown(alvo) {
+  const diff = alvo - Date.now();
+  if (Math.abs(diff) < 90000) return 'AGORA! 🎉';
+  if (diff < 0) {
+    const s = Math.abs(diff) / 1000;
+    return 'há ' + humanizeSecs(s);
+  }
+  const s = diff / 1000;
+  return humanizeSecs(s);
+}
+
+function humanizeSecs(s) {
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+
+  if (d > 30) return `${d} dias e ${h}h`;
+  if (d >= 1) return `${d}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m`;
+  if (h >= 1) return `${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(sec).padStart(2,'0')}s`;
+  return `${String(m).padStart(2,'0')}m ${String(sec).padStart(2,'0')}s`;
+}
+
+function getUrgencia(l) {
+  if (l.concluido) return 'concluido';
+  return getUrgenciaFromDiff(new Date(l.data_alvo) - Date.now());
+}
+
+function getUrgenciaFromDiff(diff) {
+  if (Math.abs(diff) < 90000) return 'agora';
+  if (diff < 0) return 'atrasado';
+  if (diff < 86400000) return 'urgente';
+  return 'ok';
+}
+
+function getProgress(l) {
+  const inicio = new Date(l.criado_em).getTime();
+  const alvo = new Date(l.data_alvo).getTime();
+  const agora = Date.now();
+  if (alvo <= inicio) return 100;
+  const p = ((agora - inicio) / (alvo - inicio)) * 100;
+  return Math.min(100, Math.max(0, p));
+}
+
+function getProgressColor(urgencia) {
+  if (urgencia === 'urgente') return 'var(--warning)';
+  if (urgencia === 'atrasado' || urgencia === 'agora') return 'var(--danger)';
+  return 'var(--accent)';
+}
+
+// ─── Formatos ─────────────────────────────────────────────────────────────────
+function formatDataAlvo(iso, short = false) {
+  const d = new Date(iso);
+  if (short) {
+    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(d);
+  }
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  }).format(d);
+}
+
+function formatDate(d, label) {
+  if (label) return new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }).format(d);
+  return new Intl.DateTimeFormat('pt-BR').format(d);
+}
+
+// ─── Form ─────────────────────────────────────────────────────────────────────
+function openForm(id = null) {
+  editingId = id;
+  selectedEmoji = '🔔';
+  selectedCat = 'geral';
+
+  document.getElementById('form-title').textContent = id ? 'Editar Lembrete' : 'Novo Lembrete';
+  document.getElementById('f-titulo').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-hora').value = '09:00';
+  document.getElementById('toggle-anual').classList.remove('on');
+  document.getElementById('emoji-trigger').textContent = '🔔';
+
+  // Set default date to tomorrow
+  const amanha = new Date();
+  amanha.setDate(amanha.getDate() + 1);
+  document.getElementById('f-data').value = amanha.toISOString().split('T')[0];
+
+  if (id) {
+    const l = lembretes.find(x => x.id === id);
+    if (l) {
+      document.getElementById('f-titulo').value = l.titulo;
+      document.getElementById('f-desc').value = l.descricao || '';
+      selectedEmoji = l.emoji;
+      selectedCat = l.categoria;
+      document.getElementById('emoji-trigger').textContent = l.emoji;
+      const dt = new Date(l.data_alvo);
+      document.getElementById('f-data').value = dt.toISOString().split('T')[0];
+      document.getElementById('f-hora').value = dt.toTimeString().slice(0, 5);
+      if (l.repetir_anual) document.getElementById('toggle-anual').classList.add('on');
+    }
+  }
+
+  updateCatChips();
+  showSheet('form-sheet');
+}
+
+function closeForm() {
+  hideSheet('form-sheet');
+  editingId = null;
+}
+
+async function salvarLembrete() {
+  const titulo = document.getElementById('f-titulo').value.trim();
+  const desc = document.getElementById('f-desc').value.trim();
+  const data = document.getElementById('f-data').value;
+  const hora = document.getElementById('f-hora').value || '09:00';
+  const repetirAnual = document.getElementById('toggle-anual').classList.contains('on');
+
+  if (!titulo) { showToast('⚠️ Digite um título'); document.getElementById('f-titulo').focus(); return; }
+  if (!data) { showToast('⚠️ Escolha uma data'); return; }
+
+  const data_alvo = new Date(data + 'T' + hora).toISOString();
+  const id = editingId || crypto.randomUUID();
+
+  const payload = {
+    id,
+    user_id: deviceId,
+    titulo,
+    descricao: desc || null,
+    emoji: selectedEmoji,
+    data_alvo,
+    categoria: selectedCat,
+    cor: '#6c63ff',
+    repetir_anual: repetirAnual,
+    concluido: false,
+    dispensado: false,
+    criado_em: editingId ? lembretes.find(l => l.id === editingId)?.criado_em : new Date().toISOString(),
+    atualizado_em: new Date().toISOString()
+  };
+
+  closeForm();
+  showToast(editingId ? '✅ Lembrete atualizado' : '✅ Lembrete criado');
+  if ('vibrate' in navigator) navigator.vibrate(50);
+
+  try {
+    await upsertLembrete(payload);
+  } catch (err) {
+    showToast('⚠️ Erro ao salvar: ' + err.message);
+  }
+
+  renderHome();
+  renderTodos();
+  startCountdowns();
+  updateBadge();
+}
+
+// ─── Chip categorias ─────────────────────────────────────────────────────────
+function setupCatChips() {
+  document.getElementById('cat-chips').addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    selectedCat = chip.dataset.cat;
+    updateCatChips();
+    // Suggest emoji if still default
+    if (selectedEmoji === '🔔') {
+      selectedEmoji = CAT_EMOJI_MAP[selectedCat] || '🔔';
+      document.getElementById('emoji-trigger').textContent = selectedEmoji;
+    }
+  });
+}
+
+function updateCatChips() {
+  document.querySelectorAll('#cat-chips .chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.cat === selectedCat);
+  });
+}
+
+// ─── Emoji picker ─────────────────────────────────────────────────────────────
+function setupEmojiPicker() {
+  const catsEl = document.getElementById('emoji-cats');
+  EMOJI_CATS.forEach((cat, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = cat.label;
+    btn.title = cat.name;
+    btn.onclick = () => selectEmojiCat(i);
+    catsEl.appendChild(btn);
+  });
+  renderEmojiGrid(0);
+}
+
+function selectEmojiCat(i) {
+  emojiCatIndex = i;
+  document.querySelectorAll('.cat-btn').forEach((b, j) => b.classList.toggle('active', j === i));
+  renderEmojiGrid(i);
+}
+
+function renderEmojiGrid(i) {
+  const grid = document.getElementById('emoji-grid');
+  grid.innerHTML = EMOJI_CATS[i].emojis.map(e =>
+    `<button class="emoji-cell" onclick="pickEmoji('${e}')">${e}</button>`
+  ).join('');
+}
+
+function openEmojiPicker() {
+  document.getElementById('emoji-picker').classList.add('show');
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeEmojiPicker() {
+  document.getElementById('emoji-picker').classList.remove('show');
+  // Don't hide overlay (form sheet still open)
+  if (!document.getElementById('form-sheet').classList.contains('show')) {
+    document.getElementById('overlay').classList.remove('show');
+  }
+}
+
+function pickEmoji(e) {
+  selectedEmoji = e;
+  document.getElementById('emoji-trigger').textContent = e;
+  closeEmojiPicker();
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+function openActions(id) {
+  actionsTargetId = id;
+  const l = lembretes.find(x => x.id === id);
+  if (!l) return;
+  document.getElementById('actions-title').textContent = l.emoji + ' ' + l.titulo;
+
+  let btns = '';
+  if (!l.concluido) {
+    btns += `<button class="snooze-btn" onclick="openSnooze('${id}');closeActions()">⏱ Adiar</button>`;
+    btns += `<button class="snooze-btn" onclick="concluirLembrete('${id}');closeActions()">✅ Concluir</button>`;
+  }
+  btns += `<button class="snooze-btn" onclick="openForm('${id}');closeActions()">✏️ Editar</button>`;
+  btns += `<button class="snooze-btn" onclick="compartilhar('${id}');closeActions()">📤 Compartilhar</button>`;
+  if (l.concluido) {
+    btns += `<button class="snooze-btn" onclick="reabrirLembrete('${id}');closeActions()">🔄 Reabrir</button>`;
+  }
+  btns += `<button class="snooze-btn" style="color:var(--danger)" onclick="confirmarDeletar('${id}');closeActions()">🗑️ Deletar</button>`;
+
+  document.getElementById('actions-body').innerHTML = btns;
+  showSheet('actions-sheet');
+}
+
+function closeActions() { hideSheet('actions-sheet'); }
+
+// ─── Snooze ───────────────────────────────────────────────────────────────────
+function openSnooze(id) {
+  snoozeTargetId = id;
+  showSheet('snooze-sheet');
+}
+
+function closeSnooze() { hideSheet('snooze-sheet'); }
+
+async function snooze(dias) {
+  const l = lembretes.find(x => x.id === snoozeTargetId);
+  if (!l) return;
+  closeSnooze();
+  const novaData = new Date(l.data_alvo);
+  novaData.setDate(novaData.getDate() + dias);
+  try {
+    await upsertLembrete({ ...l, data_alvo: novaData.toISOString(), atualizado_em: new Date().toISOString() });
+    showToast(`⏩ Adiado por ${dias} dia${dias > 1 ? 's' : ''}`);
+    if ('vibrate' in navigator) navigator.vibrate(50);
+    renderHome();
+    renderTodos();
+    startCountdowns();
+  } catch { showToast('Erro ao adiar'); }
+}
+
+function snoozeCustom() {
+  closeSnooze();
+  const l = lembretes.find(x => x.id === snoozeTargetId);
+  if (!l) return;
+  openForm(l.id);
+}
+
+// ─── Ações nos lembretes ─────────────────────────────────────────────────────
+async function concluirLembrete(id) {
+  const l = lembretes.find(x => x.id === id);
+  if (!l) return;
+  try {
+    await upsertLembrete({ ...l, concluido: true, atualizado_em: new Date().toISOString() });
+    showToast('✅ Lembrete concluído!');
+    if ('vibrate' in navigator) navigator.vibrate(50);
+    renderHome();
+    renderTodos();
+    startCountdowns();
+    updateBadge();
+  } catch { showToast('Erro'); }
+}
+
+async function reabrirLembrete(id) {
+  const l = lembretes.find(x => x.id === id);
+  if (!l) return;
+  try {
+    await upsertLembrete({ ...l, concluido: false, atualizado_em: new Date().toISOString() });
+    showToast('🔄 Lembrete reaberto');
+    renderHome();
+    renderTodos();
+    startCountdowns();
+    updateBadge();
+  } catch { showToast('Erro'); }
+}
+
+async function dispensarLembrete(id) {
+  const l = lembretes.find(x => x.id === id);
+  if (!l) return;
+  try {
+    await upsertLembrete({ ...l, dispensado: true, atualizado_em: new Date().toISOString() });
+    renderHome();
+    renderTodos();
+    updateBadge();
+  } catch {}
+}
+
+function confirmarDeletar(id) {
+  const l = lembretes.find(x => x.id === id);
+  if (!l) return;
+  showConfirm(
+    'Deletar lembrete',
+    `Deseja deletar "${l.titulo}"? Esta ação não pode ser desfeita.`,
+    async () => {
+      try {
+        await deleteLembrete(id);
+        showToast('🗑️ Lembrete deletado');
+        renderHome();
+        renderTodos();
+        startCountdowns();
+        updateBadge();
+      } catch { showToast('Erro ao deletar'); }
+    }
+  );
+}
+
+function expandMini(id) {
+  // Scroll to the item in "Todos" tab or show actions
+  openActions(id);
+}
+
+function compartilhar(id) {
+  const l = lembretes.find(x => x.id === id);
+  if (!l) return;
+  const texto = `${l.emoji} ${l.titulo}\n📅 ${formatDataAlvo(l.data_alvo)}\n\n(via MeLembre)`;
+  if (navigator.share) {
+    navigator.share({ title: 'MeLembre — ' + l.titulo, text: texto }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(texto).then(() => showToast('📋 Copiado!'));
+  }
+}
+
+// ─── Config actions ───────────────────────────────────────────────────────────
+async function ativarNotifs() {
+  if (!('Notification' in window)) { showToast('Notificações não suportadas'); return; }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    showToast('🔔 Notificações ativadas!');
+    renderHome();
+    renderConfig();
+  } else {
+    showToast('❌ Permissão negada');
+  }
+}
+
+function testarNotif() {
+  if (Notification.permission !== 'granted') { showToast('Ative as notificações primeiro'); return; }
+  new Notification('🔔 MeLembre', {
+    body: '⚽ Teste de notificação funcionando!',
+    icon: '/icon-192.png'
+  });
+  if ('vibrate' in navigator) navigator.vibrate([300, 100, 300]);
+}
+
+async function limparConcluidos() {
+  const concluidos = lembretes.filter(l => l.concluido);
+  if (!concluidos.length) { showToast('Nenhum lembrete concluído'); return; }
+  showConfirm(
+    'Limpar concluídos',
+    `Remover ${concluidos.length} lembrete(s) concluído(s)?`,
+    async () => {
+      for (const l of concluidos) {
+        try { await deleteLembrete(l.id); } catch {}
+      }
+      showToast('🧹 Limpo!');
+      renderHome();
+      renderTodos();
+      updateBadge();
+    }
+  );
+}
+
+function exportarJSON() {
+  const json = JSON.stringify(lembretes, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `melembre-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 Exportado!');
+}
+
+// ─── Badge ────────────────────────────────────────────────────────────────────
+function updateBadge() {
+  const count = lembretes.filter(l => !l.concluido && !l.dispensado && new Date(l.data_alvo) - Date.now() < 86400000 && new Date(l.data_alvo) > new Date()).length;
+  if ('setAppBadge' in navigator) {
+    if (count > 0) navigator.setAppBadge(count).catch(() => {});
+    else navigator.clearAppBadge().catch(() => {});
+  }
+}
+
+// ─── Sheets ───────────────────────────────────────────────────────────────────
+function showSheet(id) {
+  document.getElementById(id).classList.add('show');
+  document.getElementById('overlay').classList.add('show');
+}
+
+function hideSheet(id) {
+  document.getElementById(id).classList.remove('show');
+  const anyOpen = ['form-sheet','snooze-sheet','actions-sheet']
+    .some(s => document.getElementById(s).classList.contains('show'));
+  if (!anyOpen && !document.getElementById('emoji-picker').classList.contains('show')) {
+    document.getElementById('overlay').classList.remove('show');
+  }
+}
+
+function closeAllSheets() {
+  ['form-sheet','snooze-sheet','actions-sheet'].forEach(s => document.getElementById(s).classList.remove('show'));
+  document.getElementById('emoji-picker').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+  editingId = null;
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ─── Confirm ──────────────────────────────────────────────────────────────────
+function showConfirm(title, msg, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-ok').onclick = () => { closeConfirm(); onOk(); };
+  document.getElementById('confirm-dialog').classList.add('show');
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-dialog').classList.remove('show');
+}
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Pull to refresh ─────────────────────────────────────────────────────────
+let ptrStart = 0;
+document.getElementById('screen-home').addEventListener('touchstart', e => { ptrStart = e.touches[0].clientY; }, { passive: true });
+document.getElementById('screen-home').addEventListener('touchend', async e => {
+  const delta = e.changedTouches[0].clientY - ptrStart;
+  const screen = document.getElementById('screen-home');
+  if (delta > 80 && screen.scrollTop === 0) {
+    showToast('🔄 Atualizando...');
+    await loadLembretes();
+    renderHome();
+    startCountdowns();
+    updateBadge();
+  }
+}, { passive: true });
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
