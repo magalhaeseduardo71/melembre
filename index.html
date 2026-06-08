@@ -974,6 +974,7 @@ async function init() {
   startCountdowns();
   setupSWComms();
   updateBadge();
+  syncLembretesToSW();
 }
 
 // ─── Service Worker ───────────────────────────────────────────────────────────
@@ -987,13 +988,22 @@ function setupSWComms() {
   if (!navigator.serviceWorker) return;
   navigator.serviceWorker.addEventListener('message', e => {
     if (e.data && e.data.type === 'GET_LEMBRETES') {
-      const ctrl = navigator.serviceWorker.controller;
-      if (ctrl) ctrl.postMessage({ type: 'LEMBRETES_DATA', lembretes });
+      syncLembretesToSW();
     }
     if (e.data && e.data.type === 'DISPENSAR') {
       dispensarLembrete(e.data.id);
     }
   });
+}
+
+// Persists lembretes to CacheStorage so SW can read them even when app is closed
+async function syncLembretesToSW() {
+  try {
+    const cache = await caches.open('melembre-sw-kv');
+    await cache.put('/_kv/lembretes_data', new Response(JSON.stringify(lembretes)));
+  } catch {}
+  const ctrl = navigator.serviceWorker && navigator.serviceWorker.controller;
+  if (ctrl) ctrl.postMessage({ type: 'LEMBRETES_DATA', lembretes });
 }
 
 // ─── Offline ──────────────────────────────────────────────────────────────────
@@ -1009,6 +1019,7 @@ function setupOfflineDetection() {
 async function loadLembretes() {
   if (!navigator.onLine) {
     lembretes = getLocalLembretes();
+    syncLembretesToSW();
     return;
   }
   try {
@@ -1019,6 +1030,7 @@ async function loadLembretes() {
   } catch {
     lembretes = getLocalLembretes();
   }
+  syncLembretesToSW();
 }
 
 function getLocalLembretes() {
@@ -1639,13 +1651,20 @@ async function ativarNotifs() {
   }
 }
 
-function testarNotif() {
+async function testarNotif() {
   if (Notification.permission !== 'granted') { showToast('Ative as notificações primeiro'); return; }
-  new Notification('🔔 MeLembre', {
-    body: '⚽ Teste de notificação funcionando!',
-    icon: './icon-192.png'
-  });
-  if ('vibrate' in navigator) navigator.vibrate([300, 100, 300]);
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('🔔 MeLembre', {
+      body: '⚽ Teste de notificação funcionando!',
+      icon: './icon-192.png',
+      requireInteraction: false,
+      vibrate: [300, 100, 300]
+    });
+    showToast('Notificação enviada!');
+  } catch {
+    showToast('Erro ao enviar notificação');
+  }
 }
 
 async function limparConcluidos() {

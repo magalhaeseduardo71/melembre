@@ -1,4 +1,4 @@
-const CACHE = 'melembre-v2';
+const CACHE = 'melembre-v3';
 const BASE = self.registration.scope;
 const ASSETS = [BASE, BASE + 'index.html', BASE + 'manifest.json'];
 
@@ -11,7 +11,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE && k !== 'melembre-sw-kv').map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
   startAlarmCheck();
@@ -33,69 +33,80 @@ function startAlarmCheck() {
 }
 
 async function checkLembretes() {
-  const allClients = await self.clients.matchAll();
+  // Read from CacheStorage — written by the page, available even when app is closed
+  const stored = await getCache('lembretes_data');
+  if (stored) {
+    await processLembretesData(JSON.parse(stored));
+    return;
+  }
 
-  // Ask the active client for reminders data
+  // Fallback: ask active clients for data
+  const allClients = await self.clients.matchAll();
   if (allClients.length > 0) {
     allClients[0].postMessage({ type: 'GET_LEMBRETES' });
+  }
+}
+
+async function processLembretesData(lembretes) {
+  const agora = Date.now();
+
+  for (const l of lembretes) {
+    if (l.concluido || l.dispensado) continue;
+
+    const alvo = new Date(l.data_alvo).getTime();
+    const diff = alvo - agora;
+
+    // Fire at exact time (±90s window)
+    if (diff >= -90000 && diff <= 90000) {
+      const key = `notif_fired_${l.id}`;
+      const fired = await getCache(key);
+      if (!fired) {
+        fireAlarm(l);
+        await setCache(key, '1', 120);
+      }
+    }
+    // 1 hour before
+    else if (diff > 3540000 && diff <= 3660000) {
+      const key = `notif_1h_${l.id}`;
+      const fired = await getCache(key);
+      if (!fired) {
+        firePreview(l, '1h');
+        await setCache(key, '1', 3700);
+      }
+    }
+    // 1 day before
+    else if (diff > 86340000 && diff <= 86460000) {
+      const key = `notif_1d_${l.id}`;
+      const fired = await getCache(key);
+      if (!fired) {
+        firePreview(l, '1d');
+        await setCache(key, '1', 86500);
+      }
+    }
+  }
+
+  // Check snoozed reminders
+  const snoozed = await getCache('snoozed_list');
+  if (snoozed) {
+    const list = JSON.parse(snoozed);
+    const remaining = [];
+    for (const item of list) {
+      if (item.fireAt - agora <= 0) {
+        fireAlarm(item.lembrete);
+      } else {
+        remaining.push(item);
+      }
+    }
+    await setCache('snoozed_list', JSON.stringify(remaining), 86400);
   }
 }
 
 self.addEventListener('message', async e => {
   if (e.data && e.data.type === 'LEMBRETES_DATA') {
     const lembretes = e.data.lembretes || [];
-    const agora = Date.now();
-
-    for (const l of lembretes) {
-      if (l.concluido || l.dispensado) continue;
-
-      const alvo = new Date(l.data_alvo).getTime();
-      const diff = alvo - agora;
-
-      // Fire at exact time (±90s window)
-      if (diff >= -90000 && diff <= 90000) {
-        const key = `notif_fired_${l.id}`;
-        const fired = await getCache(key);
-        if (!fired) {
-          fireAlarm(l);
-          await setCache(key, '1', 120); // block re-fire for 2min
-        }
-      }
-      // 1 hour before
-      else if (diff > 0 && diff <= 3660000 && diff > 3540000) {
-        const key = `notif_1h_${l.id}`;
-        const fired = await getCache(key);
-        if (!fired) {
-          firePreview(l, '1h');
-          await setCache(key, '1', 3700);
-        }
-      }
-      // 1 day before
-      else if (diff > 0 && diff <= 86460000 && diff > 86340000) {
-        const key = `notif_1d_${l.id}`;
-        const fired = await getCache(key);
-        if (!fired) {
-          firePreview(l, '1d');
-          await setCache(key, '1', 86500);
-        }
-      }
-    }
-
-    // Also check snoozed reminders
-    const snoozed = await getCache('snoozed_list');
-    if (snoozed) {
-      const list = JSON.parse(snoozed);
-      const remaining = [];
-      for (const item of list) {
-        const diff = item.fireAt - agora;
-        if (diff <= 0) {
-          fireAlarm(item.lembrete);
-        } else {
-          remaining.push(item);
-        }
-      }
-      await setCache('snoozed_list', JSON.stringify(remaining), 86400);
-    }
+    // Persist to cache so we can check even when app is closed
+    await setCache('lembretes_data', JSON.stringify(lembretes));
+    await processLembretesData(lembretes);
   }
 
   if (e.data && e.data.type === 'SNOOZE_10') {
@@ -154,32 +165,42 @@ self.addEventListener('notificationclick', e => {
   if (e.action === 'adiar10') {
     const lembrete = e.notification.data.lembrete;
     const fireAt = Date.now() + 10 * 60 * 1000;
-    getCache('snoozed_list').then(snoozed => {
-      const list = snoozed ? JSON.parse(snoozed) : [];
-      list.push({ lembrete, fireAt });
-      setCache('snoozed_list', JSON.stringify(list), 86400);
-    });
+    e.waitUntil(
+      getCache('snoozed_list').then(snoozed => {
+        const list = snoozed ? JSON.parse(snoozed) : [];
+        list.push({ lembrete, fireAt });
+        return setCache('snoozed_list', JSON.stringify(list), 86400);
+      })
+    );
   } else if (e.action === 'dispensar') {
     const id = e.notification.data.lembrete_id;
-    self.clients.matchAll().then(clients => {
-      clients.forEach(c => c.postMessage({ type: 'DISPENSAR', id }));
-    });
+    e.waitUntil(
+      self.clients.matchAll().then(clients => {
+        clients.forEach(c => c.postMessage({ type: 'DISPENSAR', id }));
+      })
+    );
   } else {
     e.waitUntil(clients.openWindow(self.registration.scope));
   }
 });
 
-// ─── Simple key-value cache via CacheStorage ────────────────────────────────
+// ─── Key-value cache via CacheStorage (with TTL support) ────────────────────
 
-async function setCache(key, value) {
+async function setCache(key, value, ttlSeconds) {
   const cache = await caches.open('melembre-sw-kv');
-  const resp = new Response(value);
-  await cache.put('/_kv/' + key, resp);
+  const headers = {};
+  if (ttlSeconds) headers['x-expires'] = String(Date.now() + ttlSeconds * 1000);
+  await cache.put('/_kv/' + key, new Response(value, { headers }));
 }
 
 async function getCache(key) {
   const cache = await caches.open('melembre-sw-kv');
   const resp = await cache.match('/_kv/' + key);
   if (!resp) return null;
+  const expires = resp.headers.get('x-expires');
+  if (expires && Date.now() > parseInt(expires)) {
+    await cache.delete('/_kv/' + key);
+    return null;
+  }
   return resp.text();
 }
