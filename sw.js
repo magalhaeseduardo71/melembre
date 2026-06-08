@@ -1,5 +1,6 @@
 const CACHE = 'melembre-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const BASE = self.registration.scope;
+const ASSETS = [BASE, BASE + 'index.html', BASE + 'manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -114,8 +115,8 @@ function fireAlarm(l) {
 
   self.registration.showNotification('🔔 ' + l.titulo, {
     body: l.emoji + ' ' + l.titulo + '\n' + dataFormatada,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: BASE + 'icon-192.png',
+    badge: BASE + 'icon-192.png',
     tag: 'alarme-' + l.id,
     renotify: true,
     requireInteraction: true,
@@ -140,8 +141,8 @@ function firePreview(l, tipo) {
 
   self.registration.showNotification('MeLembre', {
     body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: BASE + 'icon-192.png',
+    badge: BASE + 'icon-192.png',
     tag: 'preview-' + l.id + '-' + tipo,
     data: { lembrete_id: l.id, lembrete: l }
   });
@@ -164,7 +165,7 @@ self.addEventListener('notificationclick', e => {
       clients.forEach(c => c.postMessage({ type: 'DISPENSAR', id }));
     });
   } else {
-    e.waitUntil(clients.openWindow('/'));
+    e.waitUntil(clients.openWindow(self.registration.scope));
   }
 });
 

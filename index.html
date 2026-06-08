@@ -979,7 +979,7 @@ async function init() {
 // ─── Service Worker ───────────────────────────────────────────────────────────
 function registerSW() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 }
 
@@ -1643,7 +1643,7 @@ function testarNotif() {
   if (Notification.permission !== 'granted') { showToast('Ative as notificações primeiro'); return; }
   new Notification('🔔 MeLembre', {
     body: '⚽ Teste de notificação funcionando!',
-    icon: '/icon-192.png'
+    icon: './icon-192.png'
   });
   if ('vibrate' in navigator) navigator.vibrate([300, 100, 300]);
 }
